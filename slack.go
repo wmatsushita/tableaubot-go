@@ -22,51 +22,6 @@ type SlackService struct {
 	botID  string
 }
 
-func (s *SlackService) ListenForEvents() {
-	rtm := s.client.NewRTM()
-
-	// Start listening slack events
-	go rtm.ManageConnection()
-
-	// Handle slack events
-	for msg := range rtm.IncomingEvents {
-		log.Printf("Msg: %v", msg.Data)
-		switch ev := msg.Data.(type) {
-		case *slack.MessageEvent:
-			if err := s.handleMessageEvent(ev); err != nil {
-				log.Printf("[ERROR] Failed to handle message: %s", err)
-			}
-		}
-	}
-}
-
-// handleMesageEvent handles message events.
-func (s *SlackService) handleMessageEvent(ev *slack.MessageEvent) error {
-	// Only response in specific channel. Ignore else.
-	//if ev.Channel != s.channelID {
-	//	log.Printf("%s %s", ev.Channel, ev.Msg.Text)
-	//	return nil
-	//}
-
-	// Only response mention to bot. Ignore else.
-	if !strings.HasPrefix(ev.Msg.Text, fmt.Sprintf("<@%s> ", s.botID)) {
-		return nil
-	}
-
-	// Parse message
-	m := strings.Split(strings.TrimSpace(ev.Msg.Text), " ")[1:]
-	if len(m) == 0 {
-		return fmt.Errorf("invalid message")
-	}
-
-	switch {
-	case strings.ToLower(m[0]) == "find" && len(m) >= 2:
-		s.bot.FindViewsAndRespond(ev.Channel, strings.Join(m[1:], " "))
-	}
-
-	return nil
-}
-
 func (s *SlackService) PostMessage(channel, text string) error {
 	_, _, err := s.client.PostMessage(channel, slack.MsgOptionText(text, false))
 	return err

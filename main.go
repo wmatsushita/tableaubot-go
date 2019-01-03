@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/nlopes/slack"
 )
 
 type envConfig struct {
@@ -41,6 +42,16 @@ func _main(args []string) int {
 		return 1
 	}
 
+	tb := &TableauService{}
+	if err := tb.Authenticate(env.TableauLogin, env.TableauPassword); err != nil {
+		log.Println("[ERROR] Error authenticating with Tableau", err)
+		return 1
+	}
+	if err := tb.LoadAllViews(); err != nil {
+		log.Println("[ERROR] Error loading all views", err)
+		return 1
+	}
+
 	bot := &Bot{
 		Config: &BotConfig{
 			Port:              env.Port,
@@ -51,14 +62,18 @@ func _main(args []string) int {
 			TableauLogin:      env.TableauLogin,
 			TableauPassword:   env.TableauPassword,
 		},
+		SlackService: &SlackService{
+			client: slack.New(env.BotToken),
+		},
+		TableauService: tb,
 	}
-	err := bot.Initialize()
-	if err != nil {
-		log.Println("[ERROR] Failed to initialize Bot", err)
-		return 1
-	}
+	// err := bot.Initialize()
+	// if err != nil {
+	// 	log.Println("[ERROR] Failed to initialize Bot", err)
+	// 	return 1
+	// }
 
-	err = bot.ListenForInteractions()
+	err := bot.ListenForInteractions()
 	if err != nil {
 		log.Printf("[ERROR] %s", err)
 		return 1
